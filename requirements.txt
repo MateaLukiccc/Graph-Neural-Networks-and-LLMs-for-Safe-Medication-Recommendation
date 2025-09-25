@@ -1,0 +1,10 @@
+reportlab
+Faker
+PyMuPDF
+groq
+pydantic
+python-dotenv
+scikit-learn
+dill
+dnc
+rdkit
