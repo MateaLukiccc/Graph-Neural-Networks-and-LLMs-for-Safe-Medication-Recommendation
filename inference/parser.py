@@ -5,7 +5,7 @@ from parse_llm import client, IMAGE_PARSE_PROMPT, IMAGE_PARSE_MODEL
 import json
 
 
-def extract_admissions(text):
+def extract_admissions(text, names=False):
     """
     Extracts ICD9_CODE, PROCEDURE, and ATC3 codes for each admission in the text.
     Returns a list of dicts, each representing an admission.
@@ -14,21 +14,25 @@ def extract_admissions(text):
     admissions = []
     current = None
     i = 0
+    icd_line = "ICD9 Diagnosis"
+    proc_line = "Procedures"
+    atc3_line = "Medications (ATC3)"
+    
     while i < len(lines):
         line = lines[i].strip()
         if line.startswith("Admission #"):
             if current:
                 admissions.append(current)
             current = {"ICD9_CODE": [], "PROCEDURE": [], "ATC3": []}
-        elif line == "ICD9_CODE" and current is not None:
+        elif line == icd_line and current is not None:
             i += 1
             if i < len(lines):
                 current["ICD9_CODE"] = [code.strip() for code in lines[i].split(",") if code.strip()]
-        elif line == "PROCEDURE" and current is not None:
+        elif line == proc_line and current is not None:
             i += 1
             if i < len(lines):
                 current["PROCEDURE"] = [code.strip() for code in lines[i].split(",") if code.strip()]
-        elif line == "ATC3" and current is not None:
+        elif line == atc3_line and current is not None:
             i += 1
             if i < len(lines):
                 current["ATC3"] = [code.strip() for code in lines[i].split(",") if code.strip()]
@@ -38,7 +42,7 @@ def extract_admissions(text):
     return admissions
 
 
-def parse_pdf(file_path):
+def parse_pdf(file_path, names=False):
     """
     Parses a PDF file and extracts ICD9_CODE, PROCEDURE, and ATC3 codes.
     """
@@ -46,7 +50,7 @@ def parse_pdf(file_path):
     text = ""
     for page in doc:
         text += page.get_text()
-    return extract_admissions(text)
+    return extract_admissions(text, names=names)
 
 
 def parse_image(file_path):
@@ -87,8 +91,8 @@ def parse_image(file_path):
 
 
 if __name__ == "__main__":
-    pdf_path = "example_data/example_codes2.pdf"
-    admissions = parse_pdf(pdf_path)
+    pdf_path = "example_data/example.pdf"
+    admissions = parse_pdf(pdf_path, names=True)
     for idx, adm in enumerate(admissions, 1):
         print(f"Admission #{idx}:")
         print("  ICD9_CODE:", adm["ICD9_CODE"])

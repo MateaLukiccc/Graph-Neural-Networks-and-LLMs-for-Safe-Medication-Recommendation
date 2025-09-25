@@ -8,17 +8,50 @@ import json
 
 fake = Faker()
 
-ICD9_CODES = ["401.9", "250.00", "414.01", "427.31", "272.4", "584.9", "530.81", "V58.69"]
-PROCEDURE_CODES = ["36.06", "89.52", "39.61", "88.97", "99.04", "36.15"]
-ATC3_CODES = ["C09A", "B01AA03", "C07AB02", "A10B", "N02B", "R03A"]
+ICD9_CODES = {
+    "401.9": "Unspecified essential hypertension",
+    "250.00": "Type 2 diabetes mellitus without complications",
+    "414.01": "Coronary atherosclerosis of native coronary artery",
+    "427.31": "Atrial fibrillation",
+    "272.4": "Other and unspecified hyperlipidemia",
+    "584.9": "Acute kidney failure, unspecified",
+    "530.81": "Esophageal reflux",
+    "V58.69": "Long-term (current) use of other medications"
+}
 
-def generate_admission():
+PROCEDURE_CODES = {
+    "36.06": "Insertion of non-drug-eluting coronary artery stent(s)",
+    "89.52": "Measurement of blood pressure",
+    "39.61": "Extracorporeal circulation auxiliary to open heart surgery",
+    "88.97": "Diagnostic ultrasound of heart",
+    "99.04": "Injection or infusion of thrombolytic agent",
+    "36.15": "Single vessel percutaneous transluminal coronary angioplasty (PTCA)"
+}
+
+ATC3_CODES = {
+    "C09A": "ACE inhibitors, plain",
+    "B01AA03": "Warfarin",
+    "C07AB02": "Metoprolol",
+    "A10B": "Blood glucose lowering drugs, excluding insulin",
+    "N02B": "Other analgesics and antipyretics",
+    "R03A": "Adrenergics, inhalants"
+}
+
+def generate_admission(keys=False):
+    icd9_source = ICD9_CODES.keys() 
+    proc_source = PROCEDURE_CODES.keys() 
+    atc3_source = ATC3_CODES.keys() 
+    
+    icd9_sample = random.sample(list(icd9_source), random.randint(2, 2))
+    proc_sample = random.sample(list(proc_source), random.randint(2, 3))
+    atc3_sample = random.sample(list(atc3_source), random.randint(2, 3))
+
     return {
-        "ICD9_CODE": random.sample(ICD9_CODES, random.randint(2, 9)),
-        "PROCEDURE": random.sample(PROCEDURE_CODES, random.randint(2, 5)),
-        "ATC3": random.sample(ATC3_CODES, random.randint(2, 5))
+        "ICD9 Diagnosis": [code if keys else ICD9_CODES[code] for code in icd9_sample],
+        "Procedures": [code if keys else PROCEDURE_CODES[code] for code in proc_sample],
+        "Medications (ATC3)": [code if keys else ATC3_CODES[code] for code in atc3_sample]
     }
-
+    
 def generate_patient_record():
     num_admissions = random.randint(1, 3)
     print(num_admissions)
