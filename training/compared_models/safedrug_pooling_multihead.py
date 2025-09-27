@@ -6,7 +6,6 @@ from torch.nn.parameter import Parameter
 
 
 class MaskLinear(nn.Module):
-
     def __init__(self, in_features, out_features, bias=True):
         super(MaskLinear, self).__init__()
         self.in_features = in_features
@@ -53,6 +52,7 @@ class MolecularGraphNeuralNetwork(nn.Module):
         self.W_fingerprint = nn.ModuleList([nn.Linear(dim, dim) for _ in range(layer_hidden)])
         self.layer_hidden = layer_hidden
 
+        self.attn_query = nn.Parameter(torch.empty(dim))
         init.xavier_uniform_(self.embed_fingerprint.weight)
         for lin in self.W_fingerprint:
             init.kaiming_uniform_(lin.weight, nonlinearity="relu")
@@ -63,7 +63,12 @@ class MolecularGraphNeuralNetwork(nn.Module):
         """Pad the list of matrices for batch processing into a single block-diagonal-like matrix."""
         shapes = [m.shape for m in matrices]
         M, N = sum([s[0] for s in shapes]), sum([s[1] for s in shapes])
-        pad_matrices = torch.full((M, N), fill_value=pad_value, device=self.device, dtype=matrices[0].dtype)
+        pad_matrices = torch.full(
+            (M, N),
+            fill_value=pad_value,
+            device=self.device,
+            dtype=matrices[0].dtype,
+        )
         i, j = 0, 0
         for k, matrix in enumerate(matrices):
             m, n = shapes[k]
@@ -73,20 +78,15 @@ class MolecularGraphNeuralNetwork(nn.Module):
         return pad_matrices
 
     def attention_pooling(self, vectors, sizes):
-        dim = vectors.size(-1)
-        attn_query = nn.Parameter(torch.zeros(dim))
-        torch.nn.init.xavier_uniform_(attn_query.unsqueeze(0))
-        attn_query = attn_query.to(vectors.device)
-
-        split_vecs = torch.split(vectors, sizes)  
-
+        attn_q = self.attn_query.to(vectors.device)
         pooled = []
-        for v in split_vecs:
-            scores = torch.matmul(v, attn_query)  # (num_atoms_i,)
-            weights = torch.softmax(scores, dim=0).unsqueeze(0)  # (1, num_atoms_i)
-            weighted_sum = torch.mm(weights, v)  # (1, dim)
-            pooled.append(weighted_sum.squeeze(0))  # (dim,)
-        return torch.stack(pooled, dim=0)  # (batch, dim)
+        for v in torch.split(vectors, sizes):
+            # v: (num_atoms_i, dim)
+            scores = v.matmul(attn_q)                # (num_atoms_i,)
+            weights = torch.softmax(scores, dim=0)   # (num_atoms_i,)
+            weighted_sum = (weights.unsqueeze(1) * v).sum(dim=0)
+            pooled.append(weighted_sum)
+        return torch.stack(pooled, dim=0)
     
     def update(self, matrix, vectors, layer):
         hidden_vectors = F.relu(self.W_fingerprint[layer](vectors))
