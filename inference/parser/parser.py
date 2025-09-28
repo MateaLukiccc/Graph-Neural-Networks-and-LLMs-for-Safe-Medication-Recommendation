@@ -1,11 +1,11 @@
 import pymupdf
 import base64
-from models import ImageResponse
-from parse_llm import client, IMAGE_PARSE_PROMPT, IMAGE_PARSE_MODEL
+from inference.models import ImageResponse
+from inference.parser.parse_llm import client, IMAGE_PARSE_PROMPT, IMAGE_PARSE_MODEL
 import json
 
 
-def extract_admissions(text, names=False):
+def extract_admissions(text):
     """
     Extracts ICD9_CODE, PROCEDURE, and ATC3 codes for each admission in the text.
     Returns a list of dicts, each representing an admission.
@@ -14,9 +14,9 @@ def extract_admissions(text, names=False):
     admissions = []
     current = None
     i = 0
-    icd_line = "ICD9 Diagnosis"
-    proc_line = "Procedures"
-    atc3_line = "Medications (ATC3)"
+    icd_line = ["ICD9 Diagnosis", "ICD9 Codes", "ICD9_CODE"]
+    proc_line = ["Procedures", "Procedure Codes", "PROCEDURE"]
+    atc3_line = ["Medications (ATC3)", "ATC3 Codes", "ATC3"]
     
     while i < len(lines):
         line = lines[i].strip()
@@ -24,15 +24,15 @@ def extract_admissions(text, names=False):
             if current:
                 admissions.append(current)
             current = {"ICD9_CODE": [], "PROCEDURE": [], "ATC3": []}
-        elif line == icd_line and current is not None:
+        elif line in icd_line and current is not None:
             i += 1
             if i < len(lines):
                 current["ICD9_CODE"] = [code.strip() for code in lines[i].split(",") if code.strip()]
-        elif line == proc_line and current is not None:
+        elif line in proc_line and current is not None:
             i += 1
             if i < len(lines):
                 current["PROCEDURE"] = [code.strip() for code in lines[i].split(",") if code.strip()]
-        elif line == atc3_line and current is not None:
+        elif line in atc3_line and current is not None:
             i += 1
             if i < len(lines):
                 current["ATC3"] = [code.strip() for code in lines[i].split(",") if code.strip()]
@@ -42,7 +42,7 @@ def extract_admissions(text, names=False):
     return admissions
 
 
-def parse_pdf(file_path, names=False):
+def parse_pdf(file_path):
     """
     Parses a PDF file and extracts ICD9_CODE, PROCEDURE, and ATC3 codes.
     """
@@ -50,7 +50,7 @@ def parse_pdf(file_path, names=False):
     text = ""
     for page in doc:
         text += page.get_text()
-    return extract_admissions(text, names=names)
+    return extract_admissions(text)
 
 
 def parse_image(file_path):
@@ -92,7 +92,7 @@ def parse_image(file_path):
 
 if __name__ == "__main__":
     pdf_path = "example_data/example.pdf"
-    admissions = parse_pdf(pdf_path, names=True)
+    admissions = parse_pdf(pdf_path)
     for idx, adm in enumerate(admissions, 1):
         print(f"Admission #{idx}:")
         print("  ICD9_CODE:", adm["ICD9_CODE"])
