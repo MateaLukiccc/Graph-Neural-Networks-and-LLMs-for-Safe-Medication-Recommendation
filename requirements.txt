@@ -8,3 +8,4 @@ scikit-learn
 dill
 dnc
 rdkit
+streamlit

@@ -3,6 +3,7 @@ from inference.gnn_model import GNNModel
 import pandas as pd
 import numpy as np
 from typing import Dict, Any
+from inference.report_llm import DrugReportGenerator
 
 def format_prediction_report(predictions: Dict[str, Any], confidence_threshold: float = 0.5) -> str:
     try:
@@ -62,7 +63,14 @@ if __name__ == "__main__":
     gnn_model = GNNModel(model_name="safe_drug_model", dim=32, device="cpu")
     data = GNNModel.parse_input_to_indices(admissions, gnn_model.voc['diag_voc'], gnn_model.voc['pro_voc'], gnn_model.voc['med_voc'])
     predictions = gnn_model.predict(data)
-    print("Predictions:", format_prediction_report(predictions))
+    report = format_prediction_report(predictions)
+    generator = DrugReportGenerator()
+    final_report = generator.generate_report(report)
+    print(final_report)
+    
+    
+    
+    
 
 
 
